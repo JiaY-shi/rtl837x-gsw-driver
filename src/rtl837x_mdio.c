@@ -180,7 +180,7 @@ static void rtl837x_mdio_unlock(void *ctx)
 static const struct regmap_config rtl837x_mdio_regmap_config = {
 	.reg_bits = 16,
 	.val_bits = 32,
-	.reg_stride = 1,
+	.reg_stride = 4,
 
 	.max_register = 0xffff,
 	.reg_format_endian = REGMAP_ENDIAN_BIG,
@@ -194,7 +194,7 @@ static const struct regmap_config rtl837x_mdio_regmap_config = {
 static const struct regmap_config rtl837x_mdio_nolock_regmap_config = {
 	.reg_bits = 16,
 	.val_bits = 32,
-	.reg_stride = 1,
+	.reg_stride = 4,
 
 	.max_register = 0xffff,
 	.reg_format_endian = REGMAP_ENDIAN_BIG,
