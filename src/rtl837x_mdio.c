@@ -268,6 +268,7 @@ CHIP_NOT_SUPPORTED:
 	return RT_ERR_CHIP_NOT_SUPPORTED;
 
 END_DETECT_CHIP:
+	gsw->pMapper = dal_rtl8373_mapper_get();
 	gsw->chip_id = sw_chip;
 	dev_info(gsw->dev, "Found Realtek RTL chip %s\n", gsw->chip_name);
 	return RT_ERR_OK;
@@ -607,8 +608,14 @@ static int rtl837x_gsw_probe(struct mdio_device *mdiodev)
 		return ret;
 	}
 
+#ifdef CONFIG_GPIOLIB
+	if (of_property_read_bool(np, "gpio-controller")) 
+		rtl837x_gpiochip_init(gsw);
+#endif /* CONFIG_GPIOLIB */
+
 	rtl837x_debug_proc_init();
 	rtl837x_status_check_work_init(gsw);
+	// driver_deferred_probe_trigger();
 	return 0;
 }
 
@@ -644,3 +651,4 @@ mdio_module_driver(rtl837x_mdio_driver);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("StarField Xu <air_jinkela@163.com>");
 MODULE_DESCRIPTION("rtl8372n switch driver for MT7988");
+MODULE_ALIAS("platform:rtl837x-gpio");

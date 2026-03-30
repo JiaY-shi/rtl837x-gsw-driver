@@ -7,6 +7,10 @@ rtl837x_gsw-objs := rtl837x_mdio.o
 rtl837x_gsw-objs += rtl837x_swconfig.o
 rtl837x_gsw-objs += rtl837x_dbg.o
 
+ifeq ($(CONFIG_GPIOLIB),y)
+rtl837x_gsw-objs += rtl837x_gpio.o
+endif
+
 rtl837x_gsw-objs += rtk-api/dal/dal_mgmt.o
 rtl837x_gsw-objs += rtk-api/dal/rtl8373/dal_rtl8373_acl.o
 rtl837x_gsw-objs += rtk-api/dal/rtl8373/dal_rtl8373_cpuTag.o

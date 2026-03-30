@@ -24,8 +24,11 @@
 #include "./rtk-api/mib.h"
 #include "./rtk-api/isolation.h"
 #include "./rtk-api/igmp.h"
+#include "./rtk-api/gpio.h"
 #include "./rtk-api/dal/rtl8373/rtl8373_asicdrv.h"
 #include "./rtk-api/dal/rtl8373/rtl8373_smi.h"
+#include "./rtk-api/dal/dal_mapper.h"
+#include "./rtk-api/dal/rtl8373/dal_rtl8373_mapper.h"
 
 struct rtl837x_mib_counter {
 	uint16_t	base;
@@ -63,6 +66,8 @@ struct rtk_gsw {
 	struct rtl837x_mib_counter *mib_counters;
 	unsigned int num_mib_counters;
 
+	dal_mapper_t *pMapper;
+
 	struct {
 		uint8_t valid;  // 条目是否有效
 		uint16_t vid;   // VLAN ID
@@ -84,10 +89,10 @@ struct rtk_gsw {
 };
 
 extern int rtl837x_debug_proc_init(void);
-
 extern int rtl837x_debug_proc_deinit(void);
 
 extern int rtl837x_swconfig_init(struct rtk_gsw *gsw);
+extern int rtl837x_gpiochip_init(struct rtk_gsw *gsw);
 
 unsigned int mii_mgr_read(unsigned int phy_addr, 
 		unsigned int phy_register, unsigned int *read_data);
