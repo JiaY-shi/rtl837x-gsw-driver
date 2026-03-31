@@ -16,6 +16,7 @@
 #include <linux/mutex.h>
 #include <linux/jiffies.h>
 #include <linux/errno.h>
+#include <linux/sfp.h>
 #include <net/rtnetlink.h>
 
 #include "./rtl837x_common.h"
@@ -485,6 +486,107 @@ static void rtl837x_status_check_work_func(struct work_struct *work)
 					);
 }
 
+void rtl837x_sfp_attach(void *upstream, struct sfp_bus *bus)
+{
+	struct rtk_gsw *gsw = upstream;
+	dev_info(gsw->dev, "SFP module attach\n");
+
+	gsw->sfp_bus = bus;
+	gsw->sfp_bus_attached = true;
+}
+
+void rtl837x_sfp_detach(void *upstream, struct sfp_bus *bus)
+{
+	struct rtk_gsw *gsw = upstream;
+	dev_info(gsw->dev, "SFP module detach\n");
+
+	gsw->sds1mode = SERDES_OFF;
+	rtk_sdsMode_set(1, gsw->sds1mode);
+
+	gsw->sfp_bus = NULL;
+	gsw->sfp_bus_attached = false;
+}
+
+static int rtl837x_sfp_module_insert(void *upstream, const struct sfp_eeprom_id *id)
+{
+	struct rtk_gsw *gsw = upstream;
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(support) = { 0, };
+	DECLARE_PHY_INTERFACE_MASK(interfaces);
+	phy_interface_t iface;
+
+	sfp_parse_support(gsw->sfp_bus, id, support, interfaces);
+	iface = sfp_select_interface(gsw->sfp_bus, support);
+
+	dev_info(gsw->dev, "%s SFP module inserted\n", phy_modes(iface));
+
+	switch (iface) {
+	case PHY_INTERFACE_MODE_10GBASER:
+		gsw->sds1mode = SERDES_10GR;
+		break;
+	case PHY_INTERFACE_MODE_2500BASEX:
+		gsw->sds1mode = SERDES_2500BASEX;
+		break;
+	case PHY_INTERFACE_MODE_1000BASEX:
+	case PHY_INTERFACE_MODE_SGMII:
+		gsw->sds1mode = SERDES_1000BASEX;
+		break;
+	case PHY_INTERFACE_MODE_100BASEX:
+		gsw->sds1mode = SERDES_100FX;
+		break;
+	default:
+		dev_err(gsw->dev, "Incompatible SFP module inserted\n");
+		return -EINVAL;
+	}
+
+	rtk_sdsMode_set(1, gsw->sds1mode);
+	return 0;
+}
+
+// static int rtl837x_sfp_module_start(void *upstream)
+// {
+// 	struct rtk_gsw *gsw = upstream;
+// 	dev_info(gsw->dev, "%s SFP module start\n", phy_modes(iface));
+
+// 	return 0;
+// }
+
+// static void rtl837x_sfp_module_stop(void *upstream)
+// {
+// 	struct rtk_gsw *gsw = upstream;
+// 	dev_info(gsw->dev, "%s SFP module stop\n", phy_modes(iface));
+// }
+
+static const struct sfp_upstream_ops sfp_ops = {
+	.attach = rtl837x_sfp_attach,
+	.detach = rtl837x_sfp_detach,
+	.module_insert = rtl837x_sfp_module_insert,
+	// .module_start = rtl837x_sfp_module_start,
+	// .module_stop = rtl837x_sfp_module_stop,
+	// .link_up = rtl837x_sfp_link_up,
+	// .link_down = rtl837x_sfp_link_down,
+	// .connect_phy = rtl837x_sfp_connect_phy,
+	// .disconnect_phy = rtl837x_sfp_disconnect_phy,
+};
+
+static const int rtl837x_sfp_probe(struct rtk_gsw *gsw)
+{
+	int ret;
+
+	struct sfp_bus *bus = sfp_bus_find_fwnode(gsw->dev->fwnode);
+	if (IS_ERR(bus))
+	{
+		dev_err(gsw->dev, "unable to attach SFP bus: %pe\n", bus);
+		return PTR_ERR(bus);
+	}
+
+	gsw->sfp_bus = bus;
+
+	ret = sfp_bus_add_upstream(bus, gsw, &sfp_ops);
+	sfp_bus_put(bus);
+
+	return ret;
+}
+
 static const int rtl837x_status_check_work_init(struct rtk_gsw *gsw)
 {
 	gsw->default_work_delay_ms = 250;
@@ -613,9 +715,10 @@ static int rtl837x_gsw_probe(struct mdio_device *mdiodev)
 		rtl837x_gpiochip_init(gsw);
 #endif /* CONFIG_GPIOLIB */
 
+	rtl837x_sfp_probe(gsw);
+
 	rtl837x_debug_proc_init();
 	rtl837x_status_check_work_init(gsw);
-	// driver_deferred_probe_trigger();
 	return 0;
 }
 
