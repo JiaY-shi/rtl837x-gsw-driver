@@ -644,7 +644,7 @@ static const int rtl837x_sfp_probe(struct rtk_gsw *gsw)
 
 static const int rtl837x_status_check_work_init(struct rtk_gsw *gsw)
 {
-	gsw->default_work_delay_ms = 250;
+	gsw->default_work_delay_ms = 750;
 	INIT_DELAYED_WORK(&gsw->status_check_work, rtl837x_status_check_work_func);
 	queue_delayed_work_on(smp_processor_id(), 
 						system_wq, 
