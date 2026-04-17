@@ -348,6 +348,32 @@ static int rtl8372n_igmp_init(struct rtk_gsw *gsw)
 	return rtk_igmp_suppressionEnable_set(TRUE, TRUE);
 }
 
+static int of_extra_init(struct rtk_gsw *gsw)
+{
+	struct device_node *node = gsw->dev->of_node;
+	const __be32 *list;
+	int size, data_len;
+	u32 reg, mask, val;
+
+	list = of_get_property(node, "extra-init", &size);
+	if (!list || !size) return 0;
+
+	data_len = size / (3*sizeof(__be32));
+	for (int i=0; i<data_len; i++)
+	{
+		reg = be32_to_cpu(*list);
+		list++;
+		mask = be32_to_cpu(*list);
+		list++;
+		val = be32_to_cpu(*list);
+		list++;
+		// dev_info(gsw->dev, "of_extra_init: reg:0x%X mask:0x%X val:0x%X\n", 
+		// 					reg, mask, val);
+		rtl8373_setAsicRegBits(reg, mask, val);
+	}
+	return 0;
+}
+
 typedef struct rtl837x_pnswap_cfg_s {
 	uint8_t sds0_rx_swap:1;
 	uint8_t sds0_tx_swap:1;
@@ -414,6 +440,8 @@ static int rtl8372n_hw_init(struct rtk_gsw *gsw, rtl837x_pnswap_cfg_t swap_cfg)
 		dev_err(gsw->dev, "rtk_switch_init Fail, error:%d\n", ret);
 		return -EPERM;
 	}
+
+	of_extra_init(gsw);
 
 	ret = rtk_vlan_reset();
 	if (ret)
