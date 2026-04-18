@@ -489,13 +489,15 @@ static int rtl8372n_hw_init(struct rtk_gsw *gsw, rtl837x_pnswap_cfg_t swap_cfg)
 		}
 	}
 
+	ret = rtk_sdsMode_set(0, SERDES_10GR);
+	if (ret) return -EPERM;
 	ret = rtk_sdsMode_set(0, gsw->sds0mode);
-	if (ret)
-		return -EPERM;
+	if (ret) return -EPERM;
 
+	ret = rtk_sdsMode_set(1, SERDES_10GR);
+	if (ret) return -EPERM;
 	ret = rtk_sdsMode_set(1, gsw->sds1mode);
-	if (ret)
-		return -EPERM;
+	if (ret) return -EPERM;
 
 	ret = rtk_cpu_externalCpuPort_set(PORT_MAPPED(gsw->cpu_port));
 	if (ret)
@@ -559,25 +561,18 @@ static void rtl837x_status_check_work_func(struct work_struct *work)
 					);
 }
 
+/* unused */
 void rtl837x_sfp_attach(void *upstream, struct sfp_bus *bus)
 {
 	struct rtk_gsw *gsw = upstream;
 	dev_info(gsw->dev, "SFP module attach\n");
-
-	gsw->sfp_bus = bus;
-	gsw->sfp_bus_attached = true;
 }
 
+/* unused */
 void rtl837x_sfp_detach(void *upstream, struct sfp_bus *bus)
 {
 	struct rtk_gsw *gsw = upstream;
 	dev_info(gsw->dev, "SFP module detach\n");
-
-	gsw->sds1mode = SERDES_OFF;
-	rtk_sdsMode_set(1, gsw->sds1mode);
-
-	gsw->sfp_bus = NULL;
-	gsw->sfp_bus_attached = false;
 }
 
 static int rtl837x_sfp_module_insert(void *upstream, const struct sfp_eeprom_id *id)
@@ -615,24 +610,20 @@ static int rtl837x_sfp_module_insert(void *upstream, const struct sfp_eeprom_id 
 	return 0;
 }
 
-// static int rtl837x_sfp_module_start(void *upstream)
-// {
-// 	struct rtk_gsw *gsw = upstream;
-// 	dev_info(gsw->dev, "%s SFP module start\n", phy_modes(iface));
+static void rtl837x_sfp_module_remove(void *upstream)
+{
+	struct rtk_gsw *gsw = upstream;
+	dev_info(gsw->dev, "SFP module remove\n");
 
-// 	return 0;
-// }
-
-// static void rtl837x_sfp_module_stop(void *upstream)
-// {
-// 	struct rtk_gsw *gsw = upstream;
-// 	dev_info(gsw->dev, "%s SFP module stop\n", phy_modes(iface));
-// }
+	gsw->sds1mode = SERDES_OFF;
+	rtk_sdsMode_set(1, gsw->sds1mode);
+}
 
 static const struct sfp_upstream_ops sfp_ops = {
 	.attach = rtl837x_sfp_attach,
 	.detach = rtl837x_sfp_detach,
 	.module_insert = rtl837x_sfp_module_insert,
+	.module_remove = rtl837x_sfp_module_remove,
 	// .module_start = rtl837x_sfp_module_start,
 	// .module_stop = rtl837x_sfp_module_stop,
 	// .link_up = rtl837x_sfp_link_up,
