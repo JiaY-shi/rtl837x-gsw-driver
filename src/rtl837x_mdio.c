@@ -562,14 +562,14 @@ static void rtl837x_status_check_work_func(struct work_struct *work)
 }
 
 /* unused */
-void rtl837x_sfp_attach(void *upstream, struct sfp_bus *bus)
+static void rtl837x_sfp_attach(void *upstream, struct sfp_bus *bus)
 {
 	struct rtk_gsw *gsw = upstream;
 	dev_info(gsw->dev, "SFP module attach\n");
 }
 
 /* unused */
-void rtl837x_sfp_detach(void *upstream, struct sfp_bus *bus)
+static void rtl837x_sfp_detach(void *upstream, struct sfp_bus *bus)
 {
 	struct rtk_gsw *gsw = upstream;
 	dev_info(gsw->dev, "SFP module detach\n");
@@ -632,7 +632,7 @@ static const struct sfp_upstream_ops sfp_ops = {
 	// .disconnect_phy = rtl837x_sfp_disconnect_phy,
 };
 
-static const int rtl837x_sfp_probe(struct rtk_gsw *gsw)
+static int rtl837x_sfp_probe(struct rtk_gsw *gsw)
 {
 	int ret;
 
@@ -651,7 +651,7 @@ static const int rtl837x_sfp_probe(struct rtk_gsw *gsw)
 	return ret;
 }
 
-static const int rtl837x_status_check_work_init(struct rtk_gsw *gsw)
+static int rtl837x_status_check_work_init(struct rtk_gsw *gsw)
 {
 	gsw->default_work_delay_ms = 1000;
 	INIT_DELAYED_WORK(&gsw->status_check_work, rtl837x_status_check_work_func);
