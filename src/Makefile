@@ -1,4 +1,9 @@
 ccflags-y += -DMDC_MDIO_OPERATION
+
+ifeq ($(CONFIG_RTL837x_GSW_PORT_MIB_FEATURE),y)
+ccflags-y += -DRTL837x_GSW_PORT_MIB_FEATURE=1
+endif
+
 ccflags-y += -I$(src)/rtk-api -I$(src)/rtk-api/dal/rtl8373 -Iinclude/linux/
 
 obj-$(CONFIG_RTL837x_GSW) += rtl837x_gsw.o

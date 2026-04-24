@@ -16,14 +16,12 @@ define KernelPackage/$(PKG_NAME)
   DEPENDS:=+kmod-swconfig
 endef
 
-EXTRA_CFLAGS:= \
-	-DCONFIG_RTL837x_GSW_PORT_MIB_FEATURE=y
-
 define Build/Compile
 	+$(KERNEL_MAKE) $(PKG_JOBS) \
 		M="$(PKG_BUILD_DIR)" \
 		EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
 		CONFIG_RTL837x_GSW=m \
+		CONFIG_RTL837x_GSW_PORT_MIB_FEATURE=y \
 		modules
 endef
 
