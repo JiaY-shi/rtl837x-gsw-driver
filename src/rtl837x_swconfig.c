@@ -502,6 +502,100 @@ static int rtl837x_sw_reset_hw(struct switch_dev *dev, const struct switch_attr 
 	return 0;
 }
 
+static int _rtl837x_sw_force_set_serdes_mode(struct rtk_gsw *gsw, uint8_t sds_index, rtk_sds_mode_t mode)
+{
+	switch(mode)
+	{
+		case SERDES_10GQXG:
+		case SERDES_10GUSXG:
+		case SERDES_10GR:
+		case SERDES_HSG:
+		case SERDES_2500BASEX:
+		case SERDES_SG:
+		case SERDES_1000BASEX:
+		case SERDES_100FX:
+		case SERDES_OFF:
+		case SERDES_8221B:
+		case SERDES_ON:
+			dev_info(gsw->dev, "Force set Serdes%d, mode: 0x%x\n", sds_index, mode);
+			if (sds_index == 0)
+			{
+				gsw->force_set_serdes0_mode = true;
+				gsw->sds0mode = mode;
+			}
+			else
+			{
+				gsw->force_set_serdes1_mode = true;
+				gsw->sds1mode = mode;
+			}
+			break;
+		case 1:
+			dev_info(gsw->dev, "Unset Serdes%d, force mode: 0x%x\n", sds_index, gsw->sds0mode);
+			if (sds_index == 0)
+				gsw->force_set_serdes0_mode = false;
+			else
+				gsw->force_set_serdes1_mode = false;
+			return 0;
+		default:
+			return -EINVAL;
+	}
+
+	if (rtk_sdsMode_set(sds_index, SERDES_OFF))
+		return -EPERM;
+	mdelay(20);
+
+	if (rtk_sdsMode_set(sds_index, mode))
+		return -EPERM;
+	mdelay(20);
+	return 0;
+}
+
+static int rtl837x_sw_force_set_serdes0_mode(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
+{
+	struct rtk_gsw *gsw = container_of(dev, struct rtk_gsw, sw_dev);
+	return _rtl837x_sw_force_set_serdes_mode(gsw, 0, val->value.i);
+}
+
+static int rtl837x_sw_get_serdes0_force_mode(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
+{
+	struct rtk_gsw *gsw = container_of(dev, struct rtk_gsw, sw_dev);
+	if (gsw->force_set_serdes0_mode)
+		val->value.i = gsw->sds0mode;
+	else
+		val->value.i = 1;
+	return 0;
+}
+
+static int rtl837x_sw_force_set_serdes1_mode(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
+{
+	struct rtk_gsw *gsw = container_of(dev, struct rtk_gsw, sw_dev);
+	return _rtl837x_sw_force_set_serdes_mode(gsw, 1, val->value.i);
+}
+
+static int rtl837x_sw_get_serdes1_force_mode(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
+{
+	struct rtk_gsw *gsw = container_of(dev, struct rtk_gsw, sw_dev);
+	if (gsw->force_set_serdes1_mode)
+		val->value.i = gsw->sds1mode;
+	else
+		val->value.i = 1;
+	return 0;
+}
+
+static int rtl837x_sw_serdes_mode_get_str(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
+{
+	struct rtk_gsw *gsw = container_of(dev, struct rtk_gsw, sw_dev);
+	int len = 0;
+	char *buf = gsw->buf;
+
+	len += snprintf(buf + len, sizeof(gsw->buf) - len, "Serdes0: 0x%x ", gsw->sds0mode);
+	len += snprintf(buf + len, sizeof(gsw->buf) - len, "Serdes1: 0x%x\n", gsw->sds1mode);
+
+	val->value.s = buf;
+	val->len = len;
+	return 0;
+}
+
 static struct switch_attr rtl832n_globals[] = {
 	{
 		.type = SWITCH_TYPE_INT,
@@ -516,15 +610,32 @@ static struct switch_attr rtl832n_globals[] = {
 		.description = "Reset all MIB counters",
 		.set = rtl837x_sw_reset_mibs,
 	}, {
-		.type = SWITCH_TYPE_INT,
-		.name = "reset_serdes",
-		.description = "Reset Serdes",
-		.set = rtl837x_sw_reset_sdsx,
-	}, {
 		.type = SWITCH_TYPE_NOVAL,
 		.name = "reset_hw",
 		.description = "HW reset switch",
 		.set = rtl837x_sw_reset_hw,
+	}, {
+		.type = SWITCH_TYPE_INT,
+		.name = "serdes_reset",
+		.description = "Reset Serdes",
+		.set = rtl837x_sw_reset_sdsx,
+	}, {
+		.type = SWITCH_TYPE_INT,
+		.name = "serdes0_force_mode",
+		.description = "Force set serdes0 mode(Set 1 to unset force mode)",
+		.set = rtl837x_sw_force_set_serdes0_mode,
+		.get = rtl837x_sw_get_serdes0_force_mode,
+	}, {
+		.type = SWITCH_TYPE_INT,
+		.name = "serdes1_force_mode",
+		.description = "Force set serdes1 mode(Set 1 to unset force mode)",
+		.set = rtl837x_sw_force_set_serdes1_mode,
+		.get = rtl837x_sw_get_serdes1_force_mode,
+	}, {
+		.type = SWITCH_TYPE_STRING,
+		.name = "serdes_mode_get",
+		.description = "Show the current serdes mode",
+		.get = rtl837x_sw_serdes_mode_get_str,
 	}
 };
 

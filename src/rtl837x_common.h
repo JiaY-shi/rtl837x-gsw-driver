@@ -31,6 +31,13 @@
 #include "./rtk-api/dal/rtl8373/dal_rtl8373_mapper.h"
 
 #define PORT_MAPPED(portx) (gsw->port_map[portx])
+#define USE_SERDESMODE(sds_index, _mode)                    \
+	do {                                                    \
+		if ((sds_index) == 0 && !gsw->force_set_serdes0_mode)       \
+			gsw->sds0mode = (_mode);                        \
+		else if ((sds_index) == 1 && !gsw->force_set_serdes1_mode)  \
+			gsw->sds1mode = (_mode);                        \
+	} while (0)
 
 struct rtl837x_mib_counter {
 	uint16_t	base;
@@ -70,6 +77,8 @@ struct rtk_gsw {
 	const uint8_t *port_map;
 	unsigned int num_ports;
 
+	bool force_set_serdes0_mode;
+	bool force_set_serdes1_mode;
 	rtk_sds_mode_t sds0mode;
 	rtk_sds_mode_t sds1mode;
 	rtl837x_pnswap_cfg_t swap_cfg;
